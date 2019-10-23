@@ -1,6 +1,7 @@
 package caso2_mc.londono_cf.infante;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
@@ -35,7 +36,13 @@ public class Cliente extends Thread{
 	@Override
 	public void run() 
 	{
-		
+		try 
+		{
+			iniciar();
+		} catch (Exception e) 
+		{
+			System.err.println(e.getMessage());
+		}
 	}
 	
 	public void iniciar() {
@@ -44,7 +51,7 @@ public class Cliente extends Thread{
 			PrintWriter pw = new PrintWriter(socket.getOutputStream(), true);
 			BufferedReader bf = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 			BufferedReader lectorC = new BufferedReader(new InputStreamReader(System.in));
-			Protocolo.procedimiento(lectorC, bf, pw);
+			Protocolo.procedimiento(lectorC, pw, bf);
 			lectorC.close();
 			bf.close();
 			pw.close();
