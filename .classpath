@@ -6,5 +6,8 @@
 			<attribute name="module" value="true"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="lib" path="/Users/carlosinfante/Documents/6 Semestre/Infracomp/Caso 2/servidor20192.jar"/>
+	<classpathentry kind="lib" path="/Users/carlosinfante/Documents/6 Semestre/Infracomp/Caso 2/bcpkix-jdk15on-161.jar"/>
+	<classpathentry kind="lib" path="/Users/carlosinfante/Documents/6 Semestre/Infracomp/Caso 2/bcprov-jdk15on-161.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
