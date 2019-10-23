@@ -45,13 +45,17 @@ import org.bouncycastle.util.encoders.Hex;
 
 
 public class Protocolo {
+	
+	public void procedimiento() {
+		java.security.cert.X509Certificate certificado = generarCertificado(llaves); byte[] certificadoEnBytes = certificado.getEncoded( );
+		String certificadoEnString = printBase64Binary(certificadoEnBytes); socketParaComunicacion.println(certificadoEnString);
+	}
+	
 	public static java.security.cert.X509Certificate generarCertificado(KeyPair kp) 
 	{
 		try
 		{
-			//para generar certificado
 			
-			//proveedor de certificados
 			Provider pro = new BouncyCastleProvider();
 			Security.addProvider(pro);
 			//fecha inicial de expedicion
@@ -61,14 +65,13 @@ public class Protocolo {
 
 			X500Name name = new X500Name("CN=localhost");
 			
-			//fecha final
 			Date fechaFinal = new Date(System.currentTimeMillis());
 			//Firma
 			ContentSigner signer = new JcaContentSignerBuilder("SHA256WithRSA").build(kp.getPrivate());
 			//Lo genero con mi publica para que el server lo pueda leer
 			JcaX509v3CertificateBuilder constructorCertificador = new JcaX509v3CertificateBuilder(name, sn, fechaDefinitiva, fechaFinal, name, kp.getPublic());
 			
-			constructorCertificador.addExtension(new ASN1ObjectIdentifier("2.5.29.19"), true, new BasicConstraints(true));
+			constructorCertificador.addExtension(new ASN1ObjectIdentifier("10.23.19"), true, new BasicConstraints(true));
 			
 			//certificado obtenido
 			X509Certificate certificado = new JcaX509CertificateConverter().setProvider(pro).getCertificate(constructorCertificador.build(signer));
