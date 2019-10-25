@@ -9,6 +9,7 @@ import java.security.InvalidKeyException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.Provider;
 import java.security.PublicKey;
 import java.security.SecureRandom;
@@ -50,7 +51,7 @@ public class Protocolo {
 //		byte[] certificadoEnBytes = certificado.getEncoded( );
 //		String certificadoEnString = printBase64Binary(certificadoEnBytes);
 //		socketParaComunicacion.println(certificadoEnString);
-		
+		try {
 		String protocolLine;			
 		
 		clientWriter.println("HOLA");
@@ -59,37 +60,32 @@ public class Protocolo {
 		{
 			System.out.println(protocolLine);
 		}
-		if(!protocolLine.equals("ERROR")) 
+		if(protocolLine.equals("OK")) 
 		{
 
-//			System.out.println("Seleccione un algoritmo de cifrado simetrico : ");
-//			System.out.println("1. AES");
-//			System.out.println("2. BLOWFISH");
-//
-//			String linea = bfConsola.readLine();
-			String algoritmoSimetrico = "";
+			String symmetricAlgorithm;
 
-			int tamanioLlaveSecreta = 128;
+			int secretKeySize = 128;
 
-			int tamanioParejaLlaves = 1024;
+			int keyPairSize = 1024;
 			
-			//seleccion de algoritmo simetrico
+			//Se selecciona algoritmo simetrico
 
 			Random rand = new Random();
 			  int randomNum = rand.nextInt((2 - 1) + 1) + 1;
 			switch (randomNum) {
-			case 1:
-				algoritmoSimetrico = Cliente.AES;
-				break;
-			case 2:
-				algoritmoSimetrico = Cliente.BLOWFISH;
-				break;
+//			case 1:
+//				symmetricAlgorithm = Cliente.AES;
+//				break;
+//			case 2:
+//				symmetricAlgorithm = Cliente.BLOWFISH;
+//				break;
 			default:
-				algoritmoSimetrico = Cliente.AES;
+				symmetricAlgorithm = Cliente.AES;
 				break;
 			}
 
-			String algoritmoAsimetrico = Cliente.RSA;
+			String asymmetricAlgorithm = Cliente.RSA;
 
 
 			//seleccion de algoritmo HMAC
@@ -100,174 +96,172 @@ public class Protocolo {
 //			System.out.println("4. HMACSHA512");
 //			linea = bfConsola.readLine();
 
-	
 			
-			String algoHMAC = "";
-			String algoDigest="";
-			 randomNum = rand.nextInt((4 - 1) + 1) + 1;
+			//seleccion de algoritmo HMAC
+			String authOption;
+			randomNum = rand.nextInt((4 - 1) + 1) + 1;
 
 			switch (randomNum) {
 			case 1:
-				algoHMAC = Cliente.HMACSHA1;
-				algoDigest = Cliente.SHA1;
+				authOption = Cliente.HMACSHA1;
 				break;
 			case 2:
-				algoHMAC = Cliente.HMACSHA256;
-				algoDigest = Cliente.SHA256;
+				authOption = Cliente.HMACSHA256;
 
 				break;
 			case 3:
-				algoHMAC = Cliente.HMACSHA384;
-				algoDigest = Cliente.SHA384;
+				authOption = Cliente.HMACSHA384;
 				break;
 			case 4:
-				algoHMAC = Cliente.HMACSHA512;
-				algoDigest = Cliente.SHA512;
+				authOption = Cliente.HMACSHA512;
 				break;
 			default :
-				algoHMAC = Cliente.HMACSHA512;
-				algoDigest = Cliente.SHA512;
+				authOption = Cliente.HMACSHA512;
 			}
 
-			String alg = "ALGORITMOS:"+algoritmoSimetrico+":"+algoritmoAsimetrico+":"+algoHMAC;
-			clientWriter.println(alg);
-			if((protocolLine = clientReader.readLine()) != null)
+			String algorithms = "ALGORITMOS:"+symmetricAlgorithm+":"+asymmetricAlgorithm+":"+authOption;
+			
+			clientWriter.println(algorithms);
+			protocolLine = clientReader.readLine();
+					
+			if(protocolLine != null)
 			{
 				System.out.println(protocolLine);
 			}
-
+				
+			//ETAPA 2
 			if(!protocolLine.equals(Cliente.ERROR))
 			{
-				//generar pareja de llaves asimetricas
+//				System.out.println(algorithms);
+				//Se genera el par de llaves: publica y privada
 				KeyPairGenerator kp = KeyPairGenerator.getInstance(Cliente.RSA);
-				kp.initialize(tamanioParejaLlaves,new SecureRandom());
-				KeyPair parejaDeLlaves = kp.generateKeyPair();
+				kp.initialize(keyPairSize,new SecureRandom());
+				KeyPair keys = kp.generateKeyPair();
 				
-				//generar certificado
-				java.security.cert.X509Certificate certificado = generarCertificado(parejaDeLlaves);
-				byte[] certificadoEnBytes = certificado.getEncoded( );
-				String certificadoEnString = Hex.toHexString(certificadoEnBytes);
+				//Creacion del certificado
+//				java.security.cert.X509Certificate certificado = generarCertificado(keys);
+//				byte[] certificadoEnBytes = certificado.getEncoded( );
+//				String certificadoEnString = printBase64Binary(certificadoEnBytes);
+//				clientWriter.println(certificadoEnString);
 				
-				clientWriter.println(certificadoEnString);
-				
-				String certificadoServidor = "";
-				if((protocolLine = clientReader.readLine()) != null)
+				String serverCertificate = "";
+				protocolLine = clientReader.readLine();
+				if(protocolLine != null)
 				{
-					certificadoServidor = protocolLine;
+					serverCertificate = protocolLine;
 				}
 
 				//Obtener llave publica servidor
 				CertificateFactory cf = CertificateFactory.getInstance("X.509");
-				byte[] certificadoServerEnBytes = DatatypeConverter.parseHexBinary(certificadoServidor);
+				byte[] certificadoServerEnBytes = parserBase64Binary(serverCertificate);
 				InputStream in = new ByteArrayInputStream(certificadoServerEnBytes);
 				X509Certificate certificadoServer = (X509Certificate) cf.generateCertificate(in);	
-				//obtenemos llave pub del server
+				
+				//Se obtiene llave publica del servidor
 				PublicKey llavePubServer = certificadoServer.getPublicKey();
 
-				//------------------------------------------------
-
-
-
 				//obtencion de llave secreta(simetrica)
-				KeyGenerator keygen = KeyGenerator.getInstance(algoritmoSimetrico);
-				keygen.init(tamanioLlaveSecreta);
-				SecretKey secretK = keygen.generateKey();
+				KeyGenerator keygen = KeyGenerator.getInstance(symmetricAlgorithm);
+				keygen.init(secretKeySize);
+				SecretKey symmetricKey = keygen.generateKey();
 
 				//cifrado respecto a la publica del servidor
-				Cipher cifrador = Cipher.getInstance(algoritmoAsimetrico);
-				byte[] llaveSecretaEnBytes = secretK.getEncoded();
-				cifrador.init(1, llavePubServer);
-				byte[] byteCifradoLlaveSecreta = cifrador.doFinal(llaveSecretaEnBytes);
+				Cipher cifrador = Cipher.getInstance(asymmetricAlgorithm);
+				byte[] llaveSecretaEnBytes = symmetricKey.getEncoded();
+				cifrador.init(Cipher.ENCRYPT_MODE, llavePubServer);
+				byte[] byteCifradoLlaveSimetrica = cifrador.doFinal(llaveSecretaEnBytes);
 
 				//termina cifrado-------------------
 
 
-				//envio de llave secreta cifrada con publica del servidor
-				clientWriter.println(DatatypeConverter.printHexBinary(byteCifradoLlaveSecreta));
+				//envio de llave simetrica cifrada con publica del servidor
+				clientWriter.println(printBase64Binary(byteCifradoLlaveSimetrica));
+				String reto = Cliente.getClave();
+				clientWriter.println(reto);
+
+				//Mensaje que envia el servidor cifrado con llave simetrica
+				protocolLine = clientReader.readLine();
 				
-				String cifradoConPublicaMia = "";
-				if((protocolLine = clientReader.readLine()) != null)
-				{
-					cifradoConPublicaMia = protocolLine ;
-				}
-
-				//decriptamos mensaje para saber si el server nos responde con la misma llave secreta
-				cifrador = Cipher.getInstance(algoritmoAsimetrico);
-				//se decripta respecto a mi privada porque el servidor me responde con mi publica entonces... 
-				//soy yo, el unico que podria desencriptar el mensaje
-				cifrador.init(Cipher.DECRYPT_MODE, parejaDeLlaves.getPrivate());
-				byte[] x = DatatypeConverter.parseHexBinary(cifradoConPublicaMia);
-				byte[] llaveSecretaByte  = cifrador.doFinal(x);
-
-				String llaveSecretaEnString = DatatypeConverter.printHexBinary(llaveSecretaEnBytes);
-				//verificamos igualdad entre la llave secreta generada y la que envio el servidor
+				//Se desencripta el reto que envia de vuelta el servidor para ver si es la misma llave simetrica que generamos
+				cifrador = Cipher.getInstance(symmetricAlgorithm);
+				cifrador.init(Cipher.DECRYPT_MODE, symmetricKey);
+				byte[] descifrado = parserBase64Binary(protocolLine);
+				byte[] retoEnByte  = cifrador.doFinal(descifrado);
+				String retoServidor = printBase64Binary(retoEnByte);
+				
+				//verificamos igualdad entre el reto generado por cliente y el reto que envia el servidor
 				
 				boolean continuar = false;	
-				if(llaveSecretaEnString.equals(DatatypeConverter.printHexBinary(llaveSecretaByte)))
+				if(retoServidor.equals(reto))
 				{
-					System.out.println("Se realiz� adecuadamente el intercambio de llave secreta");
+					System.out.println("Se realizo adecuadamente el intercambio de llave simetrica");
 					clientWriter.println("OK");
 					continuar = true;
 				}
 				else
 				{
-					System.out.println("No se intercambi� correctamente la llave secreta, lo sentimos.");
+					System.out.println("No se intercambio correctamente la llave simetrica, lo sentimos.");
+					clientWriter.println("ERROR");
 				}
 
 				//Llave secreta(version del server)
-				SecretKey key2 = new SecretKeySpec(llaveSecretaByte, 0, llaveSecretaByte.length, algoritmoSimetrico);
-
+//				SecretKey key2 = new SecretKeySpec(retoEnByte, 0, retoEnByte.length, symmetricAlgorithm);
+				
 
 				if(continuar) 
 				{
 					//generamos datos
-					String datos = Cliente.getDatos();
-					byte[] datosEnBytes = datos.getBytes();
-
-
-					//cifrado simetrico de los datos
-					Cipher cifradorNuevo = Cipher.getInstance(algoritmoSimetrico+"/ECB/PKCS5Padding");
-					cifradorNuevo.init(1 , key2);
-					byte[] datosCifradosSim = cifradorNuevo.doFinal(datosEnBytes);
-
-					clientWriter.println(Hex.toHexString(datosCifradosSim));
-					//--------------------fin de envio de cifrado simetrico de los datos
-
-											
-					//HMAC de los datos
-					Mac mac = Mac.getInstance(algoHMAC);
-					mac.init(key2);
-					byte[] datosHasheadosHMAC = mac.doFinal(datosEnBytes);
-
-					String datosHasheadosHmacStr = DatatypeConverter.printHexBinary(datosHasheadosHMAC); 
-
-					//Envio de datos en hexa del proceso hmac
-					clientWriter.println(datosHasheadosHmacStr);
-
-					//obtenemos la respuesta del server
-					String respuestaFinal = "";
-					if((protocolLine = clientReader.readLine()) != null)
-					{
-						respuestaFinal = protocolLine ;
-					}
+					String datos = Cliente.getCedula();
+					byte[] datosEnBytes = parserBase64Binary(datos);
+					String clave = Cliente.getClave();
+					byte[] claveEnBytes = parserBase64Binary(clave);
 					
-					if(!respuestaFinal.equals(Cliente.ERROR))
+					cifrador = Cipher.getInstance(symmetricAlgorithm);
+					cifrador.init(Cipher.ENCRYPT_MODE, symmetricKey);
+					byteCifradoLlaveSimetrica = cifrador.doFinal(datosEnBytes);
+					clientWriter.println(printBase64Binary(byteCifradoLlaveSimetrica));
+					
+					cifrador = Cipher.getInstance(symmetricAlgorithm);
+					cifrador.init(Cipher.ENCRYPT_MODE, symmetricKey);
+					byteCifradoLlaveSimetrica = cifrador.doFinal(claveEnBytes);
+					clientWriter.println(printBase64Binary(byteCifradoLlaveSimetrica));
+
+
+					//--------------------fin de envio de cifrado simetrico de los datos
+					
+					//Valor de monto ahorro que responde el servidor
+					protocolLine = clientReader.readLine();
+					cifrador = Cipher.getInstance(symmetricAlgorithm);
+					cifrador.init(Cipher.DECRYPT_MODE, symmetricKey);
+					descifrado = parserBase64Binary(protocolLine);
+					byte[] montoEnByte  = cifrador.doFinal(descifrado);
+					String montoCliente = printBase64Binary(montoEnByte);
+					System.out.println("El monto es de: " + montoCliente);
+											
+					//Se descifra con la llave publica del servidor
+					protocolLine = clientReader.readLine();
+					cifrador = Cipher.getInstance(asymmetricAlgorithm);
+					cifrador.init(Cipher.DECRYPT_MODE, llavePubServer);
+					descifrado = parserBase64Binary(protocolLine);
+					byte[] hMacCifradoEnBytes  = cifrador.doFinal(descifrado);
+					String hMac = printBase64Binary(hMacCifradoEnBytes);
+					
+					//HMAC de los datos
+					Mac mac = Mac.getInstance(authOption);
+				    mac.init(symmetricKey);
+				    
+				    byte[] bytesHMacDecrypt = mac.doFinal(montoEnByte);
+					String hashCifradoenString = printBase64Binary(bytesHMacDecrypt);
+
+					if(hMac.equals(hashCifradoenString))
 					{
-						//probar que la respuesta es correcta
-						//1. descriframos el mensaje con la publica del servidor
-						cifrador = Cipher.getInstance(algoritmoAsimetrico);
-						cifrador.init(Cipher.DECRYPT_MODE, llavePubServer);
-						byte [] respuestaBytes = DatatypeConverter.parseHexBinary(respuestaFinal);
-						byte[] hmacEnBytes = cifrador.doFinal(respuestaBytes);
-						//2. verificacion de igualdad entre hmacs
-						if(datosHasheadosHmacStr.equals(DatatypeConverter.printHexBinary(hmacEnBytes)))
-						{
-							System.out.println("El proceso fue realizado correctamente");
-						}
+						System.out.println("Se encontro que estaba acorde el valor con su hmac(valor)");
+						clientWriter.println(Cliente.OK);
 					}
 					else
 					{
-						System.out.println("ERROR : Algo fallo, lo sentimos.");
+						System.out.println("No es igual valor con hmac(valor)");
+						clientWriter.println(Cliente.ERROR);
 					}
 				}
 				else
@@ -277,15 +271,30 @@ public class Protocolo {
 			}
 			else
 			{
-				System.out.println("No se enviaron con el formato correcto los algoritmos");
+				System.out.println("Error al enviar los algoritmos al servidor");
 			}
 		}
 		else
 		{
-			System.out.println("El servidor no respondi�.");
+			System.out.println("El servidor no respondio.");
+		}
+		}
+		catch (Exception e)
+		{
+			e.getMessage();
 		}
 	}
 	
+	public static String printBase64Binary(byte[] certificadoEnBytes) 
+	{
+		return DatatypeConverter.printBase64Binary(certificadoEnBytes);
+	}
+	
+	public static byte[] parserBase64Binary(String certificadoEnBytes) 
+	{
+		return DatatypeConverter.parseBase64Binary(certificadoEnBytes);
+	}
+
 	public static java.security.cert.X509Certificate generarCertificado(KeyPair kp) 
 	{
 		try
