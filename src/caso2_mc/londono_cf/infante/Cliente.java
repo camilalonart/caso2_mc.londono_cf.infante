@@ -11,6 +11,8 @@ import java.util.Random;
 public class Cliente extends Thread{
 
 	public static final int PUERTO = 8000;
+	private String cedula;
+	private String clave;
 
 	// Authentication codes for algorithms
 	public static final String AES = "AES";
@@ -25,7 +27,15 @@ public class Cliente extends Thread{
 	public static final String OK = "OK";
 
 
-	public static String getClave() 
+	public String getClave() {
+		return clave;
+	}
+	
+	public String getCedula() {
+		return cedula;
+	}
+	
+	public static String setClave() 
 	{ 
 		Random rand = new Random();
 		int n = rand.nextInt((5 - 1) + 10) * 4;
@@ -46,7 +56,7 @@ public class Cliente extends Thread{
 		return sb.toString(); 
 	} 
 
-	public static String getCedula() 
+	public static String setCedula() 
 	{ 
 		int n = 12;
 
@@ -83,7 +93,33 @@ public class Cliente extends Thread{
 			PrintWriter pw = new PrintWriter(socket.getOutputStream(), true);
 			BufferedReader bf = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 			BufferedReader lectorC = new BufferedReader(new InputStreamReader(System.in));
+			
+			System.out.println("Introduzca su cedula:");
+			String pcedula = bf.readLine();
+			if(pcedula.length() % 4 == 0) {
+				cedula = pcedula+="0";
+			}else if(pcedula.length() % 4 == 3) {
+				cedula = pcedula+="0";
+			}else if(pcedula.length() % 4 == 2) {
+				cedula = pcedula+="00";
+			}else if(pcedula.length() % 4 == 1) {
+				cedula = pcedula+="000";
+			}
+			
+			System.out.println("Introduzca su clave:");
+			String pclave = bf.readLine();
+			if(pclave.length() % 4 == 0) {
+				clave = pclave+="0";
+			}else if(pclave.length() % 4 == 3) {
+				clave = pclave+="0";
+			}else if(pclave.length() % 4 == 2) {
+				clave = pclave+="00";
+			}else if(pclave.length() % 4 == 1) {
+				clave = pclave+="000";
+			}
+			
 			Protocolo.procedimiento(lectorC, pw, bf);
+			
 			lectorC.close();
 			bf.close();
 			pw.close();
