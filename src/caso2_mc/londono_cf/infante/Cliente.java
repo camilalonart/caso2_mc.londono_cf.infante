@@ -1,11 +1,9 @@
 package caso2_mc.londono_cf.infante;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.nio.charset.Charset;
 import java.util.Random;
 
 public class Cliente extends Thread{
@@ -78,7 +76,7 @@ public class Cliente extends Thread{
 	{
 		try 
 		{
-			iniciar();
+			iniciar(this);
 		} 
 		catch(Exception e) 
 		{
@@ -86,7 +84,7 @@ public class Cliente extends Thread{
 		}
 	}
 
-	public void iniciar() {
+	public void iniciar(Cliente c) {
 		try {
 
 			Socket socket = new Socket("localhost", PUERTO);
@@ -95,9 +93,9 @@ public class Cliente extends Thread{
 			BufferedReader lectorC = new BufferedReader(new InputStreamReader(System.in));
 			
 			System.out.println("Introduzca su cedula:");
-			String pcedula = bf.readLine();
+			String pcedula = lectorC.readLine();
 			if(pcedula.length() % 4 == 0) {
-				cedula = pcedula+="0";
+				cedula = pcedula;
 			}else if(pcedula.length() % 4 == 3) {
 				cedula = pcedula+="0";
 			}else if(pcedula.length() % 4 == 2) {
@@ -107,9 +105,9 @@ public class Cliente extends Thread{
 			}
 			
 			System.out.println("Introduzca su clave:");
-			String pclave = bf.readLine();
+			String pclave = lectorC.readLine();
 			if(pclave.length() % 4 == 0) {
-				clave = pclave+="0";
+				clave = pclave;
 			}else if(pclave.length() % 4 == 3) {
 				clave = pclave+="0";
 			}else if(pclave.length() % 4 == 2) {
@@ -118,7 +116,7 @@ public class Cliente extends Thread{
 				clave = pclave+="000";
 			}
 			
-			Protocolo.procedimiento(lectorC, pw, bf);
+			Protocolo.procedimiento(lectorC, pw, bf, c);
 			
 			lectorC.close();
 			bf.close();

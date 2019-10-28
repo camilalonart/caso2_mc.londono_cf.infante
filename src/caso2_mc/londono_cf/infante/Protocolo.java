@@ -34,7 +34,7 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 
 public class Protocolo {
 
-	public static void procedimiento(BufferedReader consoleReader, PrintWriter clientWriter, BufferedReader clientReader) {
+	public static void procedimiento(BufferedReader consoleReader, PrintWriter clientWriter, BufferedReader clientReader, Cliente c) {
 
 		try {
 			//ETAPA 1
@@ -130,7 +130,7 @@ public class Protocolo {
 
 					//envio de llave simetrica cifrada con publica del servidor
 					clientWriter.println(printBase64Binary(byteCifradoLlaveSimetrica));
-					String reto = Cliente.getClave();
+					String reto = Cliente.setClave();
 					clientWriter.println(reto);
 
 					//Mensaje que envia el servidor cifrado con llave simetrica
@@ -160,10 +160,11 @@ public class Protocolo {
 					if(continuar) 
 					{
 						//Generamos los datos
-						String datos = Cliente.getCedula();
-						byte[] datosEnBytes = parserBase64Binary(datos);
-						String clave = Cliente.getClave();
-						byte[] claveEnBytes = parserBase64Binary(clave);
+//						String datos = Cliente.getCedula();
+//						String clave = Cliente.getClave();
+						
+						byte[] datosEnBytes = parserBase64Binary(c.getCedula());
+						byte[] claveEnBytes = parserBase64Binary(c.getClave());
 
 						cifrador = Cipher.getInstance(symmetricAlgorithm);
 						cifrador.init(Cipher.ENCRYPT_MODE, symmetricKey);
